@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm --filter web build:*)",
+      "Bash(npx tsc:*)",
+      "Bash(PGPASSWORD=liga123 psql:*)",
+      "Bash(PGPASSWORD=liga123 \"/c/Program Files/PostgreSQL/17/bin/psql.exe\":*)",
+      "Bash(psql:*)",
+      "Bash(xargs sed:*)",
+      "Bash(git -C \"C:/Users/tadep/OneDrive/Desktop/Developer_life/LigaIbericaPortal/liga_iberica_portal_MR\" checkout -- \"apps/web/app/\\(admin\\)/admin/clubes/page.tsx\" \"apps/web/app/\\(admin\\)/admin/equipos/page.tsx\" \"apps/web/app/\\(admin\\)/admin/invitados/page.tsx\" \"apps/web/app/\\(admin\\)/admin/jornadas/page.tsx\" \"apps/web/app/\\(admin\\)/admin/torneos/page.tsx\" \"apps/web/app/\\(admin\\)/admin/usuarios/page.tsx\" \"apps/web/app/\\(team\\)/team/asistencia/page.tsx\" \"apps/web/app/\\(team\\)/team/pagos/page.tsx\" \"apps/web/app/\\(team\\)/team/teams/page.tsx\")",
+      "Bash(python3:*)",
+      "Bash(node --version:*)",
+      "Bash(find:*)",
+      "Bash(pnpm add:*)",
+      "Bash(npx eslint:*)",
+      "Bash(pnpm lint:*)",
+      "Bash(pnpm --filter web add:*)",
+      "Bash(pnpm --filter web add -D @types/three)",
+      "Bash(git stash:*)"
+    ]
+  }
+}
