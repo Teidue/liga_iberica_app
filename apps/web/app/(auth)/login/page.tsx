@@ -53,6 +53,7 @@ export default function LoginPage() {
     try {
       const { data } = await api.post<LoginResponse>('/auth/login', values)
       login(data.access_token, data.user)
+      toast.success(`Bienvenido, ${data.user.nombre}`)
       const dest = data.user.rol === 'SUPER_ADMIN' ? '/admin' : '/team'
       router.push(dest)
     } catch (err) {

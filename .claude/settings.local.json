@@ -16,7 +16,11 @@
       "Bash(pnpm lint:*)",
       "Bash(pnpm --filter web add:*)",
       "Bash(pnpm --filter web add -D @types/three)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(pandoc:*)",
+      "Bash(python -c:*)"
     ]
   }
 }

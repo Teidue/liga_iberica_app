@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Separator } from '@/components/ui/separator'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import api from '@/lib/api'
 import { extractApiError } from '@/lib/utils'
@@ -110,7 +109,7 @@ export default function TorneoDetailPage() {
               Editar
             </Link>
           </Button>
-          <Button variant="outline" className="text-red-600 hover:text-red-700" onClick={() => setConfirmDelete(true)}>
+          <Button variant="outline" className="text-red-600 hover:text-red-700" onClick={() => setConfirmDelete(true)} aria-label="Eliminar torneo">
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
@@ -184,8 +183,6 @@ export default function TorneoDetailPage() {
           )}
         </CardContent>
       </Card>
-
-      <Separator />
 
       {/* Confirm delete */}
       <ConfirmDialog

@@ -271,6 +271,7 @@ export default function JornadaDetailPage() {
             size="sm"
             className="text-red-600 hover:text-red-700"
             onClick={() => setConfirmDelete(true)}
+            aria-label="Eliminar jornada"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>

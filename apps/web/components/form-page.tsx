@@ -14,7 +14,7 @@ export function FormPage({ title, description, backHref, children }: FormPagePro
   return (
     <div className="mx-auto max-w-lg space-y-6">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" asChild>
+        <Button variant="ghost" size="icon" asChild aria-label="Volver">
           <Link href={backHref}>
             <ArrowLeft className="h-4 w-4" />
           </Link>

@@ -11,6 +11,7 @@ import {
   UpdateClubDto,
   ClubResponseDto,
   ClubWithStatsDto,
+  ExcelFormat,
 } from './dto/club.dto';
 
 @Injectable()
@@ -45,7 +46,7 @@ export class ClubsService {
       id: club.id,
       nombre: club.nombre,
       direccion: club.direccion,
-      formatoExcel: club.formatoExcel,
+      formatoExcel: club.formatoExcel as ExcelFormat | null,
     }));
   }
 
@@ -70,7 +71,7 @@ export class ClubsService {
       id: club.id,
       nombre: club.nombre,
       direccion: club.direccion,
-      formatoExcel: club.formatoExcel,
+      formatoExcel: club.formatoExcel as ExcelFormat | null,
       matchDaysCount,
       upcomingMatchDaysCount,
     };
@@ -89,7 +90,7 @@ export class ClubsService {
       id: club.id,
       nombre: club.nombre,
       direccion: club.direccion,
-      formatoExcel: club.formatoExcel,
+      formatoExcel: club.formatoExcel as ExcelFormat | null,
     };
   }
 
@@ -113,15 +114,6 @@ export class ClubsService {
 
       if (existingClub) {
         throw new ConflictException('Ya existe una sede con ese nombre');
-      }
-    }
-
-    // Validar que el formato Excel sea un JSON válido si se proporciona
-    if (updateClubDto.formatoExcel !== undefined) {
-      // Se podría agregar validación más específica aquí según los requerimientos
-      if (updateClubDto.formatoExcel !== null) {
-        // Validar estructura básica del JSON
-        this.validateExcelFormat(updateClubDto.formatoExcel);
       }
     }
 
@@ -162,42 +154,8 @@ export class ClubsService {
       id: club.id,
       nombre: club.nombre,
       direccion: club.direccion,
-      formatoExcel: club.formatoExcel,
+      formatoExcel: club.formatoExcel as ExcelFormat | null,
     }));
-  }
-
-  validateExcelFormat(format: unknown): boolean {
-    if (typeof format !== 'object' || format === null) {
-      throw new ConflictException('El formato Excel debe ser un objeto válido');
-    }
-    const record = format as Record<string, unknown>;
-    const columns = record['columns'];
-
-    if (!Array.isArray(columns)) {
-      throw new ConflictException(
-        'El formato Excel debe incluir un array de columnas',
-      );
-    }
-
-    if (columns.length === 0) {
-      throw new ConflictException(
-        'El formato Excel debe incluir al menos una columna',
-      );
-    }
-
-    // Validar cada columna
-    for (const column of columns) {
-      if (
-        typeof column !== 'object' ||
-        column === null ||
-        !('name' in column) ||
-        !('header' in column)
-      ) {
-        throw new ConflictException('Cada columna debe tener name y header');
-      }
-    }
-
-    return true;
   }
 
   // Método para obtener el formato por defecto si un club no tiene uno configurado

@@ -103,6 +103,7 @@ export default function UsuarioDetailPage() {
               variant="outline"
               className="text-red-600 hover:text-red-700"
               onClick={() => setConfirmDelete(true)}
+              aria-label="Eliminar usuario"
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Eliminar

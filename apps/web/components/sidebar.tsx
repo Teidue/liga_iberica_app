@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LogOut, Settings, Menu, X } from 'lucide-react'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/auth-context'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -90,6 +91,11 @@ export function BaseSidebar({
 
   const cls = ACCENT_CLASSES[accent]
 
+  function handleLogout() {
+    toast.success('Sesión cerrada correctamente')
+    logout()
+  }
+
   const initials = user?.nombre
     ? user.nombre
         .split(' ')
@@ -169,7 +175,7 @@ export function BaseSidebar({
           variant="ghost"
           size="sm"
           className={`w-full justify-start gap-2 ${cls.logoutBtn}`}
-          onClick={logout}
+          onClick={handleLogout}
         >
           <LogOut className="h-4 w-4" />
           Cerrar sesión

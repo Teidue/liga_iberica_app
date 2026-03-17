@@ -2,7 +2,8 @@
 
 /* eslint-disable react/no-unknown-property */
 
-import { useRef, useMemo, useState, useEffect } from 'react'
+import { useRef, useMemo, useState, useEffect, Suspense } from 'react'
+
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Environment, Float } from '@react-three/drei'
 import * as THREE from 'three'
@@ -128,22 +129,39 @@ function buildBall(): BallData {
   return { verts, pentagons, hexagons }
 }
 
-/** Fan-triangulate a convex polygon face → BufferGeometry with flat shading */
-function makeFaceGeo(face: number[], verts: THREE.Vector3[]): THREE.BufferGeometry {
-  // Use face centroid as the flat normal (all triangles in this face share it)
-  const centroid = new THREE.Vector3()
-  for (const i of face) centroid.add(verts[i]!)
-  centroid.normalize()
-  const [nx, ny, nz] = [centroid.x, centroid.y, centroid.z]
+/**
+ * Fan-triangulate a convex polygon face, subdivide and project every vertex
+ * onto the unit sphere so the face follows the ball's curvature.
+ */
+function makeFaceGeo(face: number[], verts: THREE.Vector3[], subdivisions = 3): THREE.BufferGeometry {
+  // Initial fan triangulation from the first vertex
+  const tris: [THREE.Vector3, THREE.Vector3, THREE.Vector3][] = []
+  const v0 = verts[face[0]!]!
+  for (let t = 1; t < face.length - 1; t++) {
+    tris.push([v0.clone(), verts[face[t]!]!.clone(), verts[face[t + 1]!]!.clone()])
+  }
+
+  // Subdivide: each triangle → 4 sub-triangles, project midpoints onto sphere
+  for (let s = 0; s < subdivisions; s++) {
+    const next: [THREE.Vector3, THREE.Vector3, THREE.Vector3][] = []
+    for (const [a, b, c] of tris) {
+      const ab = a.clone().lerp(b, 0.5).normalize()
+      const bc = b.clone().lerp(c, 0.5).normalize()
+      const ca = c.clone().lerp(a, 0.5).normalize()
+      next.push([a, ab, ca], [ab, b, bc], [ca, bc, c], [ab, bc, ca])
+    }
+    tris.length = 0
+    tris.push(...next)
+  }
 
   const positions: number[] = []
   const normals: number[] = []
 
-  for (let t = 1; t < face.length - 1; t++) {
-    for (const i of [0, t, t + 1]) {
-      const v = verts[face[i]!]!
+  for (const [a, b, c] of tris) {
+    for (const v of [a, b, c]) {
       positions.push(v.x, v.y, v.z)
-      normals.push(nx, ny, nz)
+      // On a unit sphere the outward normal equals the position vector
+      normals.push(v.x, v.y, v.z)
     }
   }
 
@@ -154,84 +172,129 @@ function makeFaceGeo(face: number[], verts: THREE.Vector3[]): THREE.BufferGeomet
 }
 
 /* ─────────────────────────────────────────────────────────────
- *  Trophy
+ *  Trophy — Premium gold, spring entry + hover glow via useFrame
  * ───────────────────────────────────────────────────────────── */
 function Trophy() {
+  const [hovered, setHovered] = useState(false)
+  const groupRef = useRef<THREE.Group>(null)
+
+  // Spring physics state for entry scale animation
+  const springScale    = useRef(0)
+  const springVelocity = useRef(0)
+  const TARGET_SCALE   = 0.45
+
+  // Smooth emissive value (interpolated each frame)
+  const emissiveRef = useRef(0.05)
+
   const goldMat = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
         color: '#D4AF37',
-        metalness: 0.95,
-        roughness: 0.1,
-        envMapIntensity: 2.5,
+        metalness: 1.0,
+        roughness: 0.15,
+        emissive: new THREE.Color('#7B5000'),
+        emissiveIntensity: 0.05,
+        envMapIntensity: 3.0,
       }),
     [],
   )
 
-  const studAngles: [number, number, number][] = useMemo(
-    () =>
-      [0, (Math.PI * 2) / 3, (Math.PI * 4) / 3].map((a) => [
-        Math.cos(a) * 0.72,
-        1.1,
-        Math.sin(a) * 0.72,
-      ]) as [number, number, number][],
-    [],
-  )
+  useFrame((_, dt) => {
+    if (!groupRef.current) return
+
+    // ── Spring scale (stiffness 180, damping 18)
+    const force = (TARGET_SCALE - springScale.current) * 180
+    const damp  = springVelocity.current * 18
+    springVelocity.current += (force - damp) * dt
+    springScale.current    += springVelocity.current * dt
+    groupRef.current.scale.setScalar(Math.max(0, springScale.current))
+
+    // ── Continuous Y rotation — faster on hover
+    groupRef.current.rotation.y += dt * (hovered ? 1.1 : 0.3)
+
+    // ── Smooth emissive glow transition
+    const targetEmissive = hovered ? 0.5 : 0.05
+    emissiveRef.current += (targetEmissive - emissiveRef.current) * Math.min(dt * 4, 1)
+    goldMat.emissiveIntensity = emissiveRef.current
+  })
 
   return (
-    <Float speed={1.4} rotationIntensity={0} floatIntensity={0.3}>
-      <group position={[0, 0.6, 0]}>
-
-        {/* Cup body */}
-        <mesh position={[0, 1.1, 0]} material={goldMat}>
-          <cylinderGeometry args={[1.1, 0.6, 1.6, 48]} />
-        </mesh>
-
-        {/* Cup rim ring */}
-        <mesh position={[0, 1.9, 0]} material={goldMat}>
-          <torusGeometry args={[1.08, 0.09, 16, 64]} />
-        </mesh>
-
-        {/* Decorative studs */}
-        {studAngles.map((pos, i) => (
-          <mesh key={i} position={pos}>
-            <sphereGeometry args={[0.07, 8, 8]} />
-            <meshStandardMaterial color="#fffde7" metalness={0.5} roughness={0.3} />
+    <>
+      <Float speed={1.3} rotationIntensity={0} floatIntensity={0.22}>
+        <group
+          ref={groupRef}
+          position={[0, 1.2, 0]}
+          onPointerOver={(e) => { e.stopPropagation(); setHovered(true) }}
+          onPointerOut={() => setHovered(false)}
+        >
+          {/* ── Cup body — tapered cylinder */}
+          <mesh position={[0, 1.2, 0]} material={goldMat}>
+            <cylinderGeometry args={[1.28, 0.66, 2.0, 64]} />
           </mesh>
-        ))}
 
-        {/* Stem */}
-        <mesh position={[0, 0.1, 0]} material={goldMat}>
-          <cylinderGeometry args={[0.12, 0.12, 1.0, 16]} />
-        </mesh>
+          {/* ── Cup lip ring */}
+          <mesh position={[0, 2.2, 0]} material={goldMat}>
+            <torusGeometry args={[1.25, 0.13, 16, 64]} />
+          </mesh>
 
-        {/* Stem knot */}
-        <mesh position={[0, -0.18, 0]} material={goldMat}>
-          <sphereGeometry args={[0.21, 24, 24]} />
-        </mesh>
+          {/* ── Cup base ring */}
+          <mesh position={[0, 0.22, 0]} material={goldMat}>
+            <torusGeometry args={[0.65, 0.07, 16, 48]} />
+          </mesh>
 
-        {/* Base step 1 */}
-        <mesh position={[0, -0.55, 0]} material={goldMat}>
-          <cylinderGeometry args={[0.55, 0.65, 0.2, 32]} />
-        </mesh>
+          {/* ── Left handle */}
+          <mesh position={[-1.2, 1.1, 0]} rotation={[0, 0, Math.PI / 2]} material={goldMat}>
+            <torusGeometry args={[0.62, 0.07, 16, 48, Math.PI]} />
+          </mesh>
 
-        {/* Base step 2 */}
-        <mesh position={[0, -0.76, 0]} material={goldMat}>
-          <cylinderGeometry args={[0.78, 0.82, 0.22, 32]} />
-        </mesh>
+          {/* ── Right handle */}
+          <mesh position={[1.2, 1.1, 0]} rotation={[0, 0, -Math.PI / 2]} material={goldMat}>
+            <torusGeometry args={[0.62, 0.07, 16, 48, Math.PI]} />
+          </mesh>
 
-        {/* Left handle */}
-        <mesh position={[-1.05, 1.1, 0]} rotation={[0, 0, Math.PI / 2]} material={goldMat}>
-          <torusGeometry args={[0.55, 0.06, 16, 48, Math.PI]} />
-        </mesh>
+          {/* ── Upper neck (tapered) */}
+          <mesh position={[0, -0.08, 0]} material={goldMat}>
+            <cylinderGeometry args={[0.14, 0.22, 0.6, 32]} />
+          </mesh>
 
-        {/* Right handle */}
-        <mesh position={[1.05, 1.1, 0]} rotation={[0, 0, -Math.PI / 2]} material={goldMat}>
-          <torusGeometry args={[0.55, 0.06, 16, 48, Math.PI]} />
-        </mesh>
+          {/* ── Upper knot */}
+          <mesh position={[0, -0.46, 0]} material={goldMat}>
+            <sphereGeometry args={[0.24, 32, 32]} />
+          </mesh>
 
-      </group>
-    </Float>
+          {/* ── Lower stem */}
+          <mesh position={[0, -0.86, 0]} material={goldMat}>
+            <cylinderGeometry args={[0.13, 0.13, 0.6, 32]} />
+          </mesh>
+
+          {/* ── Lower knot */}
+          <mesh position={[0, -1.22, 0]} material={goldMat}>
+            <sphereGeometry args={[0.20, 32, 32]} />
+          </mesh>
+
+          {/* ── Base step 1 */}
+          <mesh position={[0, -1.48, 0]} material={goldMat}>
+            <cylinderGeometry args={[0.58, 0.68, 0.22, 32]} />
+          </mesh>
+
+          {/* ── Base step 2 */}
+          <mesh position={[0, -1.72, 0]} material={goldMat}>
+            <cylinderGeometry args={[0.80, 0.90, 0.22, 32]} />
+          </mesh>
+
+          {/* ── Base bottom */}
+          <mesh position={[0, -1.94, 0]} material={goldMat}>
+            <cylinderGeometry args={[0.98, 1.03, 0.18, 48]} />
+          </mesh>
+
+          {/* ── Star cap on top */}
+          <mesh position={[0, 2.42, 0]} material={goldMat}>
+            <sphereGeometry args={[0.17, 16, 16]} />
+          </mesh>
+
+        </group>
+      </Float>
+    </>
   )
 }
 
@@ -245,10 +308,8 @@ function SoccerBall() {
   // polygonOffset pushes faces slightly back so edge lines render on top cleanly
   const blackMat = useMemo(
     () =>
-      new THREE.MeshStandardMaterial({
+      new THREE.MeshBasicMaterial({
         color: '#111111',
-        roughness: 0.55,
-        metalness: 0.05,
         polygonOffset: true,
         polygonOffsetFactor: 1,
         polygonOffsetUnits: 1,
@@ -281,15 +342,21 @@ function SoccerBall() {
     [hexagons, verts],
   )
 
-  // Edge line segments for all 90 edges (drawn once per face-pair, harmless duplicates)
+  // Edge lines curved along the sphere surface (8 segments per edge)
   const edgeGeo = useMemo(() => {
     const pos: number[] = []
+    const SEGS = 8
     for (const face of [...pentagons, ...hexagons]) {
       const len = face.length
       for (let i = 0; i < len; i++) {
         const a = verts[face[i]!]!
         const b = verts[face[(i + 1) % len]!]!
-        pos.push(a.x, a.y, a.z, b.x, b.y, b.z)
+        for (let s = 0; s < SEGS; s++) {
+          // Slightly above the sphere (1.002) so lines don't z-fight with faces
+          const p1 = a.clone().lerp(b, s / SEGS).normalize().multiplyScalar(1.002)
+          const p2 = a.clone().lerp(b, (s + 1) / SEGS).normalize().multiplyScalar(1.002)
+          pos.push(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z)
+        }
       }
     }
     const g = new THREE.BufferGeometry()
@@ -304,7 +371,7 @@ function SoccerBall() {
   })
 
   return (
-    <group ref={groupRef} position={[0, -4.0, 0]} scale={2.4}>
+    <group ref={groupRef} position={[0, -1.8, 0]} scale={1.6}>
       {pentGeos.map((g, i) => (
         <mesh key={`p${i}`} geometry={g} material={blackMat} />
       ))}
@@ -376,12 +443,14 @@ export function LoginScene() {
       <pointLight position={[2, -1, 4]}  intensity={0.5} color="#6DAEDB" />
       <pointLight position={[0, 3, -2]}  intensity={0.4} color="#D4AF37" />
 
-      {/* PBR environment for metallic reflections */}
-      <Environment preset="studio" />
+      <Suspense fallback={null}>
+        {/* City environment — best for metallic gold reflections */}
+        <Environment preset="city" />
 
-      <Trophy />
-      <SoccerBall />
-      <Particles />
+        <Trophy />
+        <SoccerBall />
+        <Particles />
+      </Suspense>
     </Canvas>
   )
 }

@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Separator } from '@/components/ui/separator'
 import api from '@/lib/api'
-import { isAxiosError } from '@/lib/utils'
+import { extractApiError } from '@/lib/utils'
 import { useAuth } from '@/contexts/auth-context'
 import type { User as UserType } from '@/lib/types'
 
@@ -63,10 +63,7 @@ export default function AdminPerfilPage() {
       login(token, { id: res.data.id, nombre: res.data.nombre, email: res.data.email, rol: res.data.rol })
       toast.success('Perfil actualizado')
     } catch (err) {
-      const msg = isAxiosError(err)
-        ? (err.response?.data as { message?: string })?.message ?? 'Error al actualizar'
-        : 'Error al actualizar'
-      toast.error(msg)
+      toast.error(extractApiError(err, 'Error al actualizar'))
     }
   }
 
@@ -77,10 +74,7 @@ export default function AdminPerfilPage() {
       passwordForm.reset()
       toast.success('Contraseña actualizada')
     } catch (err) {
-      const msg = isAxiosError(err)
-        ? (err.response?.data as { message?: string })?.message ?? 'Error al cambiar contraseña'
-        : 'Error al cambiar contraseña'
-      toast.error(msg)
+      toast.error(extractApiError(err, 'Error al cambiar contraseña'))
     }
   }
 

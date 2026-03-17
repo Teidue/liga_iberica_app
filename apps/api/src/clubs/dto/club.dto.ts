@@ -2,7 +2,6 @@ import {
   IsString,
   MinLength,
   IsOptional,
-  IsObject,
   ValidateNested,
   IsArray,
 } from 'class-validator';
@@ -85,17 +84,12 @@ export class CreateClubDto {
 
   @ApiPropertyOptional({
     description: 'Formato personalizado para exportación Excel',
-    example: {
-      columns: [
-        { name: 'nombre', header: 'Nombre', width: 20 },
-        { name: 'documento', header: 'Documento', width: 15 },
-      ],
-      sheetName: 'Jugadores',
-    },
+    type: () => ExcelFormat,
   })
   @IsOptional()
-  @IsObject()
-  formatoExcel?: object | null;
+  @ValidateNested()
+  @Type(() => ExcelFormat)
+  formatoExcel?: ExcelFormat | null;
 }
 
 export class UpdateClubDto {
@@ -119,10 +113,12 @@ export class UpdateClubDto {
 
   @ApiPropertyOptional({
     description: 'Formato personalizado para exportación Excel',
+    type: () => ExcelFormat,
   })
   @IsOptional()
-  @IsObject()
-  formatoExcel?: object | null;
+  @ValidateNested()
+  @Type(() => ExcelFormat)
+  formatoExcel?: ExcelFormat | null;
 }
 
 export class ClubResponseDto {
@@ -146,8 +142,9 @@ export class ClubResponseDto {
 
   @ApiPropertyOptional({
     description: 'Formato Excel personalizado',
+    type: () => ExcelFormat,
   })
-  formatoExcel?: object | null;
+  formatoExcel?: ExcelFormat | null;
 }
 
 export class ClubWithStatsDto extends ClubResponseDto {
