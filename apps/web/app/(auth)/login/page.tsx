@@ -92,17 +92,38 @@ export default function LoginPage() {
       </div>
 
       {/* ── Right panel: login form ── */}
-      <div className="flex w-full flex-col items-center justify-center bg-slate-50 px-6 py-12 lg:w-2/5">
+      <div className="relative flex w-full flex-col items-center justify-center bg-slate-50 px-6 py-12 lg:w-2/5 overflow-hidden">
+
+        {/* Dot grid */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: 'radial-gradient(rgba(29,112,162,0.25) 1.5px, transparent 1.5px)',
+            backgroundSize: '22px 22px',
+          }}
+        />
+
+        {/* Blob top-right */}
+        <div
+          className="absolute -top-24 -right-24 h-80 w-80 rounded-full pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(109,174,219,0.45) 0%, transparent 70%)' }}
+        />
+
+        {/* Blob bottom-left */}
+        <div
+          className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(29,112,162,0.3) 0%, transparent 70%)' }}
+        />
 
         {/* Mobile header (hidden on lg+) */}
-        <div className="mb-8 flex flex-col items-center gap-3 lg:hidden">
+        <div className="relative z-10 mb-8 flex flex-col items-center gap-3 lg:hidden">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-brand ring-2 ring-brand/30">
             <Trophy className="h-7 w-7 text-white" />
           </div>
           <span className="text-xl font-bold text-slate-800">Liga Ibérica</span>
         </div>
 
-        <Card className="w-full max-w-sm shadow-lg">
+        <Card className="relative z-10 w-full max-w-sm shadow-lg">
           <CardHeader className="space-y-1 pb-4">
             <CardTitle className="text-2xl font-bold text-slate-900">
               Bienvenido de vuelta
